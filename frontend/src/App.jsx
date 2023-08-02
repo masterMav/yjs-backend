@@ -8,25 +8,21 @@ function App() {
   const editorRef = useRef(null);
   const editorRef2 = useRef(null);
 
-  let binding = null,
-    yarray = null,
-    provider = null;
-
   // Initialize YJS
   const ydoc = new Y.Doc();
 
   // Create yArray
-  yarray = ydoc.getArray("monaco");
+  const yarray = ydoc.getArray("monaco");
 
   // Connect to websocket server
-  provider = new WebsocketProvider("ws://localhost:5000", "room1", ydoc);
+  const provider = new WebsocketProvider("ws://localhost:5000", "room1", ydoc);
 
   // Fetch all data from server
   provider.on("sync", () => {
     if (yarray.length === 0) {
-      const newDoc = new Y.Text(),
+      const doc1 = new Y.Text(),
         doc2 = new Y.Text();
-      yarray.push([newDoc]);
+      yarray.push([doc1]);
       yarray.push([doc2]);
     }
   });
@@ -35,7 +31,7 @@ function App() {
   function handleEditorDidMount(editor, monaco) {
     editorRef.current = editor;
 
-    binding = new MonacoBinding(
+    const binding1 = new MonacoBinding(
       yarray.get(0),
       editorRef.current.getModel(),
       new Set([editorRef.current]),
@@ -47,7 +43,7 @@ function App() {
   function handleEditorDidMount2(editor, monaco) {
     editorRef2.current = editor;
 
-    binding = new MonacoBinding(
+    const binding2 = new MonacoBinding(
       yarray.get(1),
       editorRef2.current.getModel(),
       new Set([editorRef2.current]),
@@ -55,22 +51,9 @@ function App() {
     );
   }
 
-  // type.toString() shows proper text, for storage just pass type.toString()
-  const handleClick = () => {
-    // editor history gets deleted
-    // binding.destroy();
-    // binding = new MonacoBinding(
-    //   yarray.get(1),
-    //   editorRef.current.getModel(),
-    //   new Set([editorRef.current]),
-    //   provider.awareness
-    // );
-  };
-
   return (
     <>
       <h1>coco</h1>
-      <button onClick={handleClick}>Switch</button>
       <Editor
         height="50vh"
         width="100vw"
