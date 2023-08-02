@@ -1,42 +1,71 @@
-import { useState, useRef } from 'react'
-import reactLogo from './assets/react.svg'
-import Editor from "@monaco-editor/react"
-import * as Y from "yjs"
-import { WebrtcProvider } from "y-webrtc"
-import { MonacoBinding } from "y-monaco"
-
-// Setup Monaco Editor
-// Attach YJS Text to Monaco Editor
+import { useState, useRef } from "react";
+import Editor from "@monaco-editor/react";
+import * as Y from "yjs";
+import { WebsocketProvider } from "y-websocket";
+import { MonacoBinding } from "y-monaco";
 
 function App() {
   const editorRef = useRef(null);
 
-  // Editor value -> YJS Text value (A text value shared by multiple people)
-  // One person deletes text -> Deletes from the overall shared text value
-  // Handled by YJS
-
-  // Initialize YJS, tell it to listen to our Monaco instance for changes.
-
+  let binding = null, yarray = null, provider = null;
+  
   function handleEditorDidMount(editor, monaco) {
     editorRef.current = editor;
+    
     // Initialize YJS
-    const doc = new Y.Doc(); // a collection of shared objects -> Text
-    // Connect to peers (or start connection) with WebRTC
-    const provider = new WebrtcProvider("test-room", doc); // room1, room2
-    const type = doc.getText("monaco"); // doc { "monaco": "what our IDE is showing" }
-    // Bind YJS to Monaco 
-    const binding = new MonacoBinding(type, editorRef.current.getModel(), new Set([editorRef.current]), provider.awareness);
-    console.log(provider.awareness);                
+    const ydoc = new Y.Doc();
+  
+    // create yArray
+    yarray = ydoc.getArray("monaco");
+  
+    // connect to websocket server
+    provider = new WebsocketProvider("ws://localhost:5000", "room1", ydoc);
+
+    provider.on("sync", () => {
+      // Bind initial
+      if (yarray.length === 0) {
+        const newDoc = new Y.Text(),
+          doc2 = new Y.Text();
+        yarray.push([newDoc]);
+        yarray.push([doc2]);
+      }
+
+      // Bind YJS to Monaco
+      binding = new MonacoBinding(
+        yarray.get(0),
+        editorRef.current.getModel(),
+        new Set([editorRef.current]),
+        provider.awareness
+      );
+    });
   }
 
+  // type.toString() shows proper text, for storage just pass type.toString()
+  const handleClick = () => {
+
+    // editor history gets deleted
+    binding.destroy();
+
+    binding = new MonacoBinding(
+      yarray.get(1),
+      editorRef.current.getModel(),
+      new Set([editorRef.current]),
+      provider.awareness
+    );
+  };
+
   return (
-    <Editor
-      height="100vh"
-      width="100vw"
-      theme="vs-dark"
-      onMount={handleEditorDidMount}
-    />
-  )
+    <>
+      <h1>coco</h1>
+      <button onClick={handleClick}>Switch</button>
+      <Editor
+        height="50vh"
+        width="50vw"
+        theme="vs-dark"
+        onMount={handleEditorDidMount}
+      />
+    </>
+  );
 }
 
-export default App
+export default App;
